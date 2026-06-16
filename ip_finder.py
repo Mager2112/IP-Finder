@@ -1,7 +1,9 @@
 import sys
 
+# Пикулин К. М. 2026
+
 def ipv4_to_int(ip_str):
-    """Преобразует IPv4 вида '192.168.1.1' в число"""
+    #Преобразует IPv4 вида '192.168.1.1' в число
     parts = ip_str.split('.')
     if len(parts) != 4:
         return None
@@ -16,7 +18,7 @@ def ipv4_to_int(ip_str):
     return result
 
 def ipv6_to_int(ip_str):
-    """Преобразует IPv6 в 128-битное число (целое)"""
+    #Преобразует IPv6 в 128-битное число (целое)
     # Обработка сжатия ::
     if '::' in ip_str:
         left, right = ip_str.split('::', 1)
@@ -43,16 +45,16 @@ def ipv6_to_int(ip_str):
     return result
 
 def validate_and_parse_ip(ip_str):
-    """Определяет тип IP и возвращает (версия, число, битность)"""
+    #Определяет тип IP и пишет что это
     ip_str = ip_str.strip()
     
-    # Попробуем IPv4
+    # IPv4
     if '.' in ip_str:
         num = ipv4_to_int(ip_str)
         if num is not None:
             return (4, num, 32)
     
-    # Попробуем IPv6
+    # IPv6
     if ':' in ip_str:
         num = ipv6_to_int(ip_str)
         if num is not None:
@@ -61,7 +63,7 @@ def validate_and_parse_ip(ip_str):
     return None
 
 def find_common_mask(ip1, ip2):
-    """Находит минимальную маску (в CIDR формате) между двумя IP"""
+    #Находит минимальную маску (в CIDR формате) между двумя IP
     parsed1 = validate_and_parse_ip(ip1)
     parsed2 = validate_and_parse_ip(ip2)
     
@@ -89,7 +91,7 @@ def find_common_mask(ip1, ip2):
     return mask_len
 
 def mask_to_dotted(mask_len):
-    """Преобразует длину маски в точечную запись для IPv4"""
+    #Преобразует длину маски в точечную запись для IPv4
     if mask_len == 0:
         return "0.0.0.0"
     if mask_len == 32:
@@ -98,7 +100,7 @@ def mask_to_dotted(mask_len):
     return f"{(mask_bits >> 24) & 0xFF}.{(mask_bits >> 16) & 0xFF}.{(mask_bits >> 8) & 0xFF}.{mask_bits & 0xFF}"
 
 def debug_ip_parts(ip_str, num, bits):
-    """Отладка: показывает разбивку IP на части"""
+    #Отладка: показывает разбивку IP на части
     if bits == 32:
         # Для IPv4
         parts = []
@@ -118,7 +120,7 @@ def debug_ip_parts(ip_str, num, bits):
 
 def main():
     # Проверяем аргументы командной строки
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 3: # туториал
         print("Использование: python3 ip_finder.py <IP1> <IP2>")
         print("\nПримеры для IPv4:")
         print("  python3 ip_finder.py 192.168.1.1 192.168.1.100")
