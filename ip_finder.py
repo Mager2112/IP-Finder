@@ -1,7 +1,7 @@
 import sys
 
 def ipv4_to_int(ip_str):
-    #Преобразует IPv4 вида '192.168.1.1' в число
+    """Преобразует IPv4 вида '192.168.1.1' в число"""
     parts = ip_str.split('.')
     if len(parts) != 4:
         return None
@@ -16,7 +16,7 @@ def ipv4_to_int(ip_str):
     return result
 
 def ipv6_to_int(ip_str):
-    #Преобразует IPv6 вида '2001:0db8::1' в 128-битное число
+    """Преобразует IPv6 в 128-битное число (целое)"""
     # Обработка сжатия ::
     if '::' in ip_str:
         left, right = ip_str.split('::', 1)
@@ -43,11 +43,11 @@ def ipv6_to_int(ip_str):
     return result
 
 def validate_and_parse_ip(ip_str):
-    #Определяет тип IP и возвращает (версия, число, битность)
+    """Определяет тип IP и возвращает (версия, число, битность)"""
     ip_str = ip_str.strip()
     
     # Попробуем IPv4
-    if '.' in ip_str and ':' not in ip_str:
+    if '.' in ip_str:
         num = ipv4_to_int(ip_str)
         if num is not None:
             return (4, num, 32)
@@ -61,7 +61,7 @@ def validate_and_parse_ip(ip_str):
     return None
 
 def find_common_mask(ip1, ip2):
-    #Находит минимальную маску (в CIDR формате) между двумя IP
+    """Находит минимальную маску (в CIDR формате) между двумя IP"""
     parsed1 = validate_and_parse_ip(ip1)
     parsed2 = validate_and_parse_ip(ip2)
     
@@ -76,10 +76,9 @@ def find_common_mask(ip1, ip2):
     if ver1 != ver2:
         raise ValueError(f"Разные версии IP: IPv{ver1} и IPv{ver2}")
     
-    bits = bits1
-        
+    # Пошаговое сравнение битов
     mask_len = 0
-    for i in range(bits - 1, -1, -1):
+    for i in range(bits1 - 1, -1, -1):
         bit1 = (num1 >> i) & 1
         bit2 = (num2 >> i) & 1
         if bit1 == bit2:
@@ -90,30 +89,58 @@ def find_common_mask(ip1, ip2):
     return mask_len
 
 def mask_to_dotted(mask_len):
-    #Преобразует длину маски в точечную запись для IPv4
+    """Преобразует длину маски в точечную запись для IPv4"""
     if mask_len == 0:
         return "0.0.0.0"
+    if mask_len == 32:
+        return "255.255.255.255"
     mask_bits = (0xFFFFFFFF << (32 - mask_len)) & 0xFFFFFFFF
     return f"{(mask_bits >> 24) & 0xFF}.{(mask_bits >> 16) & 0xFF}.{(mask_bits >> 8) & 0xFF}.{mask_bits & 0xFF}"
+
+def debug_ip_parts(ip_str, num, bits):
+    """Отладка: показывает разбивку IP на части"""
+    if bits == 32:
+        # Для IPv4
+        parts = []
+        for i in range(3, -1, -1):
+            part = (num >> (i * 8)) & 0xFF
+            parts.append(str(part))
+        print(f"  {ip_str} = {' '.join(parts)}")
+        print(f"  HEX: {hex(num)}")
+    else:
+        # Для IPv6
+        parts = []
+        for i in range(7, -1, -1):
+            part = (num >> (i * 16)) & 0xFFFF
+            parts.append(f"{part:04x}")
+        print(f"  {ip_str} = {' '.join(parts)}")
+        print(f"  HEX: {hex(num)}")
 
 def main():
     # Проверяем аргументы командной строки
     if len(sys.argv) != 3:
         print("Использование: python3 ip_finder.py <IP1> <IP2>")
-        print("Примеры:")
+        print("\nПримеры для IPv4:")
         print("  python3 ip_finder.py 192.168.1.1 192.168.1.100")
+        print("  python3 ip_finder.py 192.168.1.1 192.168.2.1")
+        print("  python3 ip_finder.py 10.0.0.1 10.0.0.1")
+        print("  python3 ip_finder.py 8.9.1.1 8.10.1.1")
+        print("\nПримеры для IPv6:")
         print("  python3 ip_finder.py 2001:db8::1 2001:db8::2")
-        print("  python3 ip_finder.py 10.0.0.1 192.168.1.1")
+        print("  python3 ip_finder.py 2001:db8:1234::1 2001:db8:1235::1")
+        print("  python3 ip_finder.py 2001:db8:1234:5678::1 2001:db8:1234:5679::1")
+        print("  python3 ip_finder.py fe80::1 fe80::2")
         sys.exit(1)
     
     ip1 = sys.argv[1]
     ip2 = sys.argv[2]
     
-    try:
+    try:   
         mask = find_common_mask(ip1, ip2)
         parsed = validate_and_parse_ip(ip1)
         ip_version = parsed[0] if parsed else None
         
+        print("\n=== Результат ===")
         print(f"IP адрес 1: {ip1}")
         print(f"IP адрес 2: {ip2}")
         print(f"Версия IP: IPv{ip_version}")
@@ -124,11 +151,16 @@ def main():
             dotted_mask = mask_to_dotted(mask)
             print(f"Маска в десятичном виде: {dotted_mask}")
             
-            # Дополнительно показываем сеть, которой принадлежат оба адреса
+            # Показываем общую сеть
             num = parsed[1]
-            network = num & (0xFFFFFFFF << (32 - mask))
+            if mask == 32:
+                network = num
+            else:
+                network = num & (0xFFFFFFFF << (32 - mask))
             network_ip = f"{(network >> 24) & 0xFF}.{(network >> 16) & 0xFF}.{(network >> 8) & 0xFF}.{network & 0xFF}"
             print(f"Общая сеть: {network_ip}/{mask}")
+        
+        print()
         
     except ValueError as e:
         print(f"Ошибка: {e}")
